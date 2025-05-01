@@ -15,8 +15,8 @@ contract RiverLog {
         uint16 cubicFeetPerSecond;
         string riverName;
         bool swim;
-        bool commercial;
-        NavigationStyle navStyle;
+        bool commercial; //only given if Rafting Trip
+        NavigationStyle navStyle; //only given if Rafting Trip
         uint16 durationHours;
     }
 
@@ -35,14 +35,19 @@ contract RiverLog {
     RaftTrip[] public raftRiverLog;
     RaftTrip[] public raftSwims;
     RaftTrip[] public commercialTrips;
+    string[] public uniqueRivers;
 
     uint256 public totalHoursKayaked = 0;
     uint256 public totalHoursRafted = 0;
+    uint256 public longestKayakTrip;
+    uint256 public longestKayakTripIndex;
+    uint256 public longestRaftTrip;
+    uint256 public longestRaftTripIndex;
 
     mapping(uint8 => string[]) public riversByClass;
     mapping(string => uint[]) public kayakTripsByRiverName;
     mapping(string => uint[]) public raftTripsByRiverName;
-    mapping(bool => uint[]) public raftTripsIfCommercial;
+    mapping(string => bool) public isUniqueRiver;
 
     function addKayakTrip(
         uint8 _date,
@@ -69,6 +74,14 @@ contract RiverLog {
         if (_swim == true) {
             kayakSwims.push(newKayakTrip);
         }
+        if (!isUniqueRiver[_riverName]) {
+            uniqueRivers.push(_riverName);
+            isUniqueRiver[_riverName] = true;
+        }
+        if (longestKayakTrip < _durationHours) {
+            longestKayakTrip = _durationHours;
+            longestKayakTripIndex = kayakRiverLog.length - 1;
+        }
     }
 
     function addRaftingTrip(
@@ -91,15 +104,23 @@ contract RiverLog {
             navStyle: _navStyle,
             durationHours: _durationHours
         });
+        raftRiverLog.push(newRaftingTrip);
         if (_swim == true) {
             raftSwims.push(newRaftingTrip);
         }
         if (_commercial == true) {
             commercialTrips.push(newRaftingTrip);
         }
+        if (!isUniqueRiver[_riverName]) {
+            uniqueRivers.push(_riverName);
+            isUniqueRiver[_riverName] = true;
+        }
+        if (longestRaftTrip < _durationHours) {
+            longestRaftTrip = _durationHours;
+            longestRaftTripIndex = raftRiverLog.length - 1;
+        }
         totalHoursRafted += _durationHours;
         riversByClass[_riverClass].push(_riverName);
-        raftRiverLog.push(newRaftingTrip);
     }
 
     function getTotalKayakTrips()
@@ -136,12 +157,25 @@ contract RiverLog {
         view
         returns (
             uint256 totalSwims,
+            uint256 kayakSwimRate,
+            uint256 raftSwimRate,
+            uint256 totalSwimRate,
             KayakTrip[] memory kayaks,
             RaftTrip[] memory rafts
         )
     {
         totalSwims = (kayakSwims.length) + (raftSwims.length);
-        return (totalSwims, kayakSwims, raftSwims);
+        kayakSwimRate = (kayakSwims.length) / (getTotalKayakTrips());
+        raftSwimRate = (raftSwims.length) / (getTotalRaftTrips());
+        totalSwimRate = totalSwims / getTotalTripsTaken();
+        return (
+            totalSwims,
+            kayakSwimRate,
+            raftSwimRate,
+            totalSwimRate,
+            kayakSwims,
+            raftSwims
+        );
     }
 
     function getTripsByRiverName(
@@ -215,5 +249,79 @@ contract RiverLog {
     {
         _totalHoursRafted = totalHoursRafted;
         return _totalHoursRafted;
+    }
+
+    function getAllRiversRan() public view returns (string[] memory) {
+        return uniqueRivers;
+    }
+
+    function getTotalHoursOnTheRiver()
+        public
+        view
+        returns (uint256 totalHoursOnTheRiver)
+    {
+        totalHoursOnTheRiver = (getTotalHoursKayaked() + getTotalHoursRafted());
+        return totalHoursOnTheRiver;
+    }
+
+    function getLongestKayakTripData()
+        public
+        view
+        returns (uint256, KayakTrip memory)
+    {
+        return (longestKayakTrip, kayakRiverLog[longestKayakTripIndex]);
+    }
+
+    function getLongestRaftingTripData()
+        public
+        view
+        returns (uint256, RaftTrip memory)
+    {
+        return (longestRaftTrip, raftRiverLog[longestRaftTrip]);
+    }
+
+    function getLongestTripData()
+        public
+        view
+        returns (
+            string memory tripType,
+            uint8 date,
+            uint256 duration,
+            uint8 riverClass,
+            string memory riverName,
+            uint16 cfs,
+            bool swim
+        )
+    {
+        (
+            uint256 kayakDuration,
+            KayakTrip memory kayakTrip
+        ) = getLongestKayakTripData();
+        (
+            uint256 raftDuration,
+            RaftTrip memory raftTrip
+        ) = getLongestRaftingTripData();
+
+        if (raftDuration >= kayakDuration) {
+            return (
+                "raft",
+                raftTrip.date,
+                raftDuration,
+                raftTrip.riverClass,
+                raftTrip.riverName,
+                raftTrip.cubicFeetPerSecond,
+                raftTrip.swim
+            );
+        } else {
+            return (
+                "kayak",
+                kayakTrip.date,
+                kayakDuration,
+                kayakTrip.riverClass,
+                kayakTrip.riverName,
+                kayakTrip.cubicFeetPerSecond,
+                kayakTrip.swim
+            );
+        }
     }
 }
