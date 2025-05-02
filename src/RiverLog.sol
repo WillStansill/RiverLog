@@ -43,11 +43,13 @@ contract RiverLog {
     uint256 public longestKayakTripIndex;
     uint256 public longestRaftTrip;
     uint256 public longestRaftTripIndex;
+    uint256 public constant PERCISION = 1e4;
 
     mapping(uint8 => string[]) public riversByClass;
     mapping(string => uint[]) public kayakTripsByRiverName;
     mapping(string => uint[]) public raftTripsByRiverName;
     mapping(string => bool) public isUniqueRiver;
+    mapping(uint8 => mapping(string => bool)) public isRiverInClass;
 
     function addKayakTrip(
         uint8 _date,
@@ -70,7 +72,10 @@ contract RiverLog {
         totalHoursKayaked += _durationHours;
         kayakTripsByRiverName[_riverName].push(kayakRiverLog.length);
         kayakRiverLog.push(newKayakTrip);
-        riversByClass[_riverClass].push(_riverName);
+        if (!isRiverInClass[_riverClass][_riverName]) {
+            riversByClass[_riverClass].push(_riverName);
+            isRiverInClass[_riverClass][_riverName] = true;
+        }
         if (_swim == true) {
             kayakSwims.push(newKayakTrip);
         }
@@ -105,6 +110,8 @@ contract RiverLog {
             durationHours: _durationHours
         });
         raftRiverLog.push(newRaftingTrip);
+        raftTripsByRiverName[_riverName].push(raftRiverLog.length);
+
         if (_swim == true) {
             raftSwims.push(newRaftingTrip);
         }
@@ -120,7 +127,10 @@ contract RiverLog {
             longestRaftTripIndex = raftRiverLog.length - 1;
         }
         totalHoursRafted += _durationHours;
-        riversByClass[_riverClass].push(_riverName);
+        if (!isRiverInClass[_riverClass][_riverName]) {
+            riversByClass[_riverClass].push(_riverName);
+            isRiverInClass[_riverClass][_riverName] = true;
+        }
     }
 
     function getTotalKayakTrips()
@@ -165,9 +175,25 @@ contract RiverLog {
         )
     {
         totalSwims = (kayakSwims.length) + (raftSwims.length);
-        kayakSwimRate = (kayakSwims.length) / (getTotalKayakTrips());
-        raftSwimRate = (raftSwims.length) / (getTotalRaftTrips());
-        totalSwimRate = totalSwims / getTotalTripsTaken();
+
+        uint256 totalKayaktrips = getTotalKayakTrips();
+        uint256 totalRaftTrips = getTotalRaftTrips();
+
+        if (totalKayaktrips > 0) {
+            kayakSwimRate =
+                ((kayakSwims.length) * PERCISION) /
+                (getTotalKayakTrips());
+        } else {
+            kayakSwimRate = 0;
+        }
+        if (totalRaftTrips > 0) {
+            raftSwimRate =
+                ((raftSwims.length) * PERCISION) /
+                (getTotalRaftTrips());
+        } else {
+            raftSwimRate = 0;
+        }
+        totalSwimRate = (totalSwims * PERCISION) / getTotalTripsTaken();
         return (
             totalSwims,
             kayakSwimRate,
