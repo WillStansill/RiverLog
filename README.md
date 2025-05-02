@@ -54,7 +54,6 @@ The `RiverLog` contract is an on-chain logging system for tracking kayaking and 
 
 solidity
 
-CopyEdit
 
 `enum NavigationStyle { PaddleGuide, OarGuide, Paddler, R2 }`
 
@@ -64,7 +63,6 @@ CopyEdit
 
 solidity
 
-CopyEdit
 
 `struct KayakTrip {
     uint8 date;
@@ -133,21 +131,15 @@ struct RaftTrip {
 🔍 Example Queries
 ------------------
 
-solidity
 
-CopyEdit
 
 `(string memory tripType, uint8 date, uint256 duration, uint8 riverClass, string memory riverName, uint16 cfs, bool swim) = riverLog.getLongestTripData();`
 
-solidity
 
-CopyEdit
 
 `(uint256 totalCommercialRaftTrips, RaftTrip[] memory commercialTrips) = riverLog.getCommercialTripsRun();`
 
-solidity
 
-CopyEdit
 
 `(uint256 totalSwims, uint256 kayakSwimRate, uint256 raftSwimRate, uint256 totalSwimRate, KayakTrip[] memory kayakSwims, RaftTrip[] memory raftSwims) = riverLog.getSwimData();`
 
